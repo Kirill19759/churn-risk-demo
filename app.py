@@ -1,4 +1,4 @@
-"""Кабинет риска ухода: вход по паролю и карточки на неделю."""
+"""Кабинет удержания: вход по паролю и карточки контакта."""
 
 from pathlib import Path
 
@@ -51,7 +51,7 @@ def cabinet_view() -> None:
         st.session_state["auth"] = False
         st.rerun()
 
-    st.title("Кого трогать на этой неделе")
+    st.title("План контактов на неделю")
     st.caption(
         f"Учебная база, {len(ranked)} клиентов. "
         f"ROC-AUC на отложенной части этой выборки: {bundle['valid_roc_auc']:.2f}. "
@@ -59,46 +59,46 @@ def cabinet_view() -> None:
     )
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("В высоком риске", int(len(high)))
-    c2.metric("Позвонить сейчас", int(min(10, len(high))))
-    c3.metric("База", int(len(ranked)))
+    c1.metric("Высокий риск", int(len(high)))
+    c2.metric("Позвонить в приоритете", int(min(10, len(high))))
+    c3.metric("Всего в базе", int(len(ranked)))
 
-    st.subheader("Очередь контакта")
+    st.subheader("С кем связаться сначала")
     cards = high.head(9)
     rows = list(cards.iterrows())
     for start in range(0, len(rows), 3):
         cols = st.columns(3)
         for col, (_, row) in zip(cols, rows[start : start + 3]):
+            phone = row["phone"] if "phone" in row.index else ""
             with col:
                 st.markdown(
                     f"**{row['client_id']}** · {row['segment']}  \n"
+                    f"{phone}  \n"
                     f"Риск {row['churn_score']:.2f}  \n"
                     f"{row['reason']}  \n"
                     f"_{row['action']}_"
                 )
 
     st.download_button(
-        "Скачать очередь",
+        "Скачать список для звонков",
         high.to_csv(index=False).encode("utf-8-sig"),
         file_name="week_contact_list.csv",
         mime="text/csv",
     )
-    with st.expander("Полный список базы"):
-        st.dataframe(
-            ranked[
-                [
-                    "client_id",
-                    "segment",
-                    "recency_days",
-                    "frequency_90d",
-                    "churn_score",
-                    "risk_group",
-                    "reason",
-                    "action",
-                ]
-            ],
-            use_container_width=True,
-        )
+    show_cols = [
+        "client_id",
+        "phone",
+        "segment",
+        "recency_days",
+        "frequency_90d",
+        "churn_score",
+        "risk_group",
+        "reason",
+        "action",
+    ]
+    show_cols = [c for c in show_cols if c in ranked.columns]
+    with st.expander("Вся база"):
+        st.dataframe(ranked[show_cols], use_container_width=True)
 
     st.write("Кирилл Тагильцев · [@tagiltsev_ml](https://t.me/tagiltsev_ml) · tagiltsev.ml@mail.ru")
 

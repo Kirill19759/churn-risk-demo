@@ -43,6 +43,7 @@ def generate_sample(n: int = 500, seed: int = 42) -> pd.DataFrame:
         freq = max(0, int(random.gauss(4, 3)))
         check = round(max(300, random.gauss(2500, 1200)), 0)
         tickets = max(0, int(random.gauss(0.6, 1.2)))
+        phone = f"+7 343 {random.randint(200, 399)}-{random.randint(10, 99)}-{random.randint(10, 99)}"
         logit = -2.2
         logit += 0.018 * recency
         logit -= 0.22 * min(freq, 12)
@@ -55,6 +56,7 @@ def generate_sample(n: int = 500, seed: int = 42) -> pd.DataFrame:
         rows.append(
             {
                 "client_id": f"C{i:04d}",
+                "phone": phone,
                 "segment": segment,
                 "channel": channel,
                 "months_as_client": months,
