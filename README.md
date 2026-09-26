@@ -12,12 +12,13 @@
 
 После простоя бесплатный адрес может открываться 20–30 секунд.
 
-## Локально на Windows
+## Как запустить локально
 
 ```text
-cd C:\Users\MLNW\churn-risk-demo
-git pull
-python src\train.py
+git clone https://github.com/Kirill19759/churn-risk-demo.git
+cd churn-risk-demo
+python -m pip install -r requirements.txt
+python src/train.py
 streamlit run app.py
 ```
 
