@@ -1,56 +1,112 @@
-"""Локальное демо: база клиентов → риск ухода → выгрузка."""
+"""Кабинет риска ухода: вход по паролю и карточки на неделю."""
 
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from src.score import REQUIRED, load_bundle, score_frame
+from src.score import load_bundle, score_frame
+from src.train import MODEL, main as train_main
 
 SAMPLE = Path(__file__).resolve().parent / "data" / "sample_clients.csv"
+DEMO_USER = "demo"
+DEMO_PASSWORD = "tagiltsev-ml"
 
-st.set_page_config(page_title="tagiltsev_ml · риск ухода", layout="wide")
-st.title("Риск ухода клиента")
-st.caption("Демонстрационный сервис tagiltsev_ml. Не промышленное внедрение у конкретного клиента.")
+st.set_page_config(page_title="tagiltsev_ml · кабинет удержания", layout="wide")
 
-bundle = load_bundle()
-st.write(
-    f"Модель обучена на учебной базе. "
-    f"Качество на отложенной части: ROC-AUC {bundle['valid_roc_auc']:.2f}. "
-    f"На вашей CRM цифра будет другой."
-)
 
-st.subheader("Что нужно в файле")
-st.code(", ".join(REQUIRED))
+def ensure_model() -> None:
+    if not MODEL.exists() or not SAMPLE.exists():
+        train_main()
 
-uploaded = st.file_uploader("Загрузите CSV с клиентами", type=["csv"])
-use_sample = st.checkbox("Показать учебный пример", value=uploaded is None)
 
-if uploaded is not None:
-    df = pd.read_csv(uploaded)
-elif use_sample:
-    df = pd.read_csv(SAMPLE)
+def login_view() -> None:
+    st.markdown("### tagiltsev_ml")
+    st.title("Кабинет удержания клиентов")
+    st.write(
+        "Учебное демо для показа пилота. Не промышленное внедрение. "
+        "Вход: логин `demo`, пароль `tagiltsev-ml`."
+    )
+    with st.form("login"):
+        user = st.text_input("Логин")
+        password = st.text_input("Пароль", type="password")
+        submitted = st.form_submit_button("Войти")
+    if submitted:
+        if user == DEMO_USER and password == DEMO_PASSWORD:
+            st.session_state["auth"] = True
+            st.rerun()
+        else:
+            st.error("Неверный логин или пароль.")
+
+
+def cabinet_view() -> None:
+    ensure_model()
+    bundle = load_bundle()
+    ranked = score_frame(pd.read_csv(SAMPLE))
+    high = ranked[ranked["risk_group"] == "высокий"]
+
+    top = st.columns([4, 1])
+    top[0].markdown("**tagiltsev_ml** · кабинет удержания")
+    if top[1].button("Выйти"):
+        st.session_state["auth"] = False
+        st.rerun()
+
+    st.title("Кого трогать на этой неделе")
+    st.caption(
+        f"Учебная база, {len(ranked)} клиентов. "
+        f"ROC-AUC на отложенной части этой выборки: {bundle['valid_roc_auc']:.2f}. "
+        "На чужой CRM цифра будет другой."
+    )
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("В высоком риске", int(len(high)))
+    c2.metric("Позвонить сейчас", int(min(10, len(high))))
+    c3.metric("База", int(len(ranked)))
+
+    st.subheader("Очередь контакта")
+    cards = high.head(9)
+    rows = list(cards.iterrows())
+    for start in range(0, len(rows), 3):
+        cols = st.columns(3)
+        for col, (_, row) in zip(cols, rows[start : start + 3]):
+            with col:
+                st.markdown(
+                    f"**{row['client_id']}** · {row['segment']}  \n"
+                    f"Риск {row['churn_score']:.2f}  \n"
+                    f"{row['reason']}  \n"
+                    f"_{row['action']}_"
+                )
+
+    st.download_button(
+        "Скачать очередь",
+        high.to_csv(index=False).encode("utf-8-sig"),
+        file_name="week_contact_list.csv",
+        mime="text/csv",
+    )
+    with st.expander("Полный список базы"):
+        st.dataframe(
+            ranked[
+                [
+                    "client_id",
+                    "segment",
+                    "recency_days",
+                    "frequency_90d",
+                    "churn_score",
+                    "risk_group",
+                    "reason",
+                    "action",
+                ]
+            ],
+            use_container_width=True,
+        )
+
+    st.write("Кирилл Тагильцев · [@tagiltsev_ml](https://t.me/tagiltsev_ml) · tagiltsev.ml@mail.ru")
+
+
+if "auth" not in st.session_state:
+    st.session_state["auth"] = False
+
+if st.session_state["auth"]:
+    cabinet_view()
 else:
-    st.stop()
-
-st.write(f"Строк во входе: {len(df)}")
-
-try:
-    ranked = score_frame(df)
-except Exception as exc:
-    st.error(str(exc))
-    st.stop()
-
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Высокий риск", int((ranked["risk_group"] == "высокий").sum()))
-c2.metric("Средний", int((ranked["risk_group"] == "средний").sum()))
-c3.metric("Низкий", int((ranked["risk_group"] == "низкий").sum()))
-c4.metric("Средняя оценка", f"{ranked['churn_score'].mean():.2f}")
-
-st.dataframe(ranked.head(30), use_container_width=True)
-st.download_button(
-    "Скачать список риска",
-    ranked.to_csv(index=False).encode("utf-8-sig"),
-    file_name="clients_churn_risk.csv",
-    mime="text/csv",
-)
+    login_view()

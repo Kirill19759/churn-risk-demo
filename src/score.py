@@ -1,4 +1,4 @@
-"""Оценка риска ухода по сохранённой модели."""
+"""Оценка риска ухода и короткие пояснения."""
 
 from pathlib import Path
 
@@ -24,6 +24,21 @@ def load_bundle():
     return joblib.load(MODEL)
 
 
+def reason_text(row: pd.Series) -> str:
+    parts = []
+    if row["recency_days"] >= 45:
+        parts.append(f"не был {int(row['recency_days'])} дней")
+    if row["frequency_90d"] <= 1:
+        parts.append("мало покупок за 90 дней")
+    if row["support_tickets_90d"] >= 2:
+        parts.append("есть обращения в поддержку")
+    if row["segment"] == "vip" and row["churn_score"] >= 0.55:
+        parts.append("VIP, потеря дороже")
+    if not parts:
+        parts.append("сочетание признаков выше фона")
+    return "; ".join(parts)
+
+
 def score_frame(df: pd.DataFrame) -> pd.DataFrame:
     bundle = load_bundle()
     missing = [c for c in REQUIRED if c not in df.columns]
@@ -36,5 +51,13 @@ def score_frame(df: pd.DataFrame) -> pd.DataFrame:
         out["churn_score"],
         bins=[-0.01, 0.35, 0.55, 1.01],
         labels=["низкий", "средний", "высокий"],
+    )
+    out["reason"] = out.apply(reason_text, axis=1)
+    out["action"] = out["risk_group"].map(
+        {
+            "высокий": "позвонить на этой неделе",
+            "средний": "письмо или предложение",
+            "низкий": "не трогать сейчас",
+        }
     )
     return out.sort_values("churn_score", ascending=False).reset_index(drop=True)

@@ -1,42 +1,35 @@
-# Риск ухода клиента
+# Кабинет удержания клиентов
 
-Демонстрационный сервис **tagiltsev_ml**.
+Демонстрационный кабинет **tagiltsev_ml**.
 
-Задача: из базы клиентов получить список, кого трогать первым, пока человек не ушёл.
+Вход: логин `demo`, пароль `tagiltsev-ml`.
 
-Это открытое демо, не внедрение у клиента. Выборка синтетическая. На чужой CRM качество будет другим.
+На экране — кого трогать на этой неделе, почему и какое действие. Это учебные данные, не база клиента.
 
-## Что на выходе
+Пароль только закрывает страницу от случайного просмотра. Это не защита корпоративных данных.
 
-- оценка вероятности ухода (`churn_score`);
-- группа: низкий / средний / высокий риск;
-- CSV, отсортированный по убыванию риска.
-
-## Запуск на Windows
+## Локально на Windows
 
 ```text
-cd C:\Users\User_name\churn-risk-demo
-py -m venv .venv
-.venv\Scripts\activate
-python -m pip install -r requirements.txt
+cd C:\Users\MLNW\churn-risk-demo
+git pull
 python src\train.py
 streamlit run app.py
 ```
 
-Если активация окружения запрещена, пакеты уже стоят глобально — достаточно `python src\train.py` и `streamlit run app.py`.
+Откройте http://localhost:8501
 
-## Колонки
+## Как выложить на бесплатный адрес
 
-`segment`, `months_as_client`, `recency_days`, `frequency_90d`, `avg_check`, `support_tickets_90d`, `channel`
+1. Войдите на https://share.streamlit.io через GitHub.
+2. Create app.
+3. Repository: `Kirill19759/churn-risk-demo`.
+4. Main file: `app.py`.
+5. Deploy.
+6. Ссылку вставьте в Telegram и README.
 
-`target_churn` нужен только для обучения.
-
-## Ограничения
-
-Сервис не обещает, что клиенты останутся. Он ставит порядок контакта.
+Первый запуск может занять минуту: приложение само соберёт учебную базу, если модели ещё нет.
 
 ## Контакты
 
-Кирилл Тагильцев · tagiltsev_ml  
-Telegram: https://t.me/tagiltsev_ml  
-Почта: tagiltsev.ml@mail.ru
+Кирилл Тагильцев · https://t.me/tagiltsev_ml · tagiltsev.ml@mail.ru
