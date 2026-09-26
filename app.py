@@ -23,10 +23,7 @@ def ensure_model() -> None:
 def login_view() -> None:
     st.markdown("### tagiltsev_ml")
     st.title("Кабинет удержания клиентов")
-    st.write(
-        "Учебное демо для показа пилота. Не промышленное внедрение. "
-        "Вход: логин `demo`, пароль `tagiltsev-ml`."
-    )
+    st.write("Учебное демо для показа пилота. Не промышленное внедрение.")
     with st.form("login"):
         user = st.text_input("Логин")
         password = st.text_input("Пароль", type="password")
