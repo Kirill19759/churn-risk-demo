@@ -15,7 +15,7 @@
 ## Запуск на Windows
 
 ```text
-cd C:\Users\MLNW\churn-risk-demo
+cd C:\Users\User_name\churn-risk-demo
 py -m venv .venv
 .venv\Scripts\activate
 python -m pip install -r requirements.txt
